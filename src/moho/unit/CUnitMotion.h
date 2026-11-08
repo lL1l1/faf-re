@@ -411,6 +411,16 @@ namespace moho
     CalcDesiredTargetElevation(const CAiTarget& target, const Wm3::Vector3f& offsetFromUnit) const;
 
     /**
+     * Engine addition, no binary counterpart.
+     *
+     * What it does:
+     * With `EFafSimFix::AirAttackTerrainClearance`, raises a desired climb from
+     * CalcDesiredTargetElevation so the flier stays at least half of
+     * `attackHeight` above the surface under it and along its heading.
+     */
+    [[nodiscard]] float ApplyAirAttackTerrainClearance(float desiredClimb, float attackHeight) const;
+
+    /**
      * Address: 0x006BC950 (FUN_006BC950, ?CalcWingedLift@CUnitMotion@Moho@@ABEMMM@Z)
      *
      * What it does:

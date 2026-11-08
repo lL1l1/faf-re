@@ -40,6 +40,7 @@ namespace moho
     int sim_FixRefuelUndockAboveMaxHealth = -1;
     int sim_FixShieldRepair = -1;
     int sim_FixProjectileMapEdgeCollision = -1;
+    int sim_FixAirAttackTerrainClearance = -1;
 
     TConVar<int> gTConVar_sim_FixAimLeadOncePerTick(
       "sim_FixAimLeadOncePerTick",
@@ -73,6 +74,13 @@ namespace moho
       "nearest map edge, instead of #154's impact below height 0 (-1 game version: no release has it yet, 0 off, 1 on).",
       &sim_FixProjectileMapEdgeCollision
     );
+    TConVar<int> gTConVar_sim_FixAirAttackTerrainClearance(
+      "sim_FixAirAttackTerrainClearance",
+      "Bombers and other winged fliers on an attack run stay at least half their attack elevation above the terrain "
+      "under and ahead of them, instead of diving through hills toward a target's ground height (-1 game version: no "
+      "release has it yet, 0 off, 1 on).",
+      &sim_FixAirAttackTerrainClearance
+    );
 
     struct SFafSimFixInfo
     {
@@ -92,6 +100,7 @@ namespace moho
       {"sim_FixRefuelUndockAboveMaxHealth", 3840, &sim_FixRefuelUndockAboveMaxHealth},
       {"sim_FixShieldRepair", 3840, &sim_FixShieldRepair},
       {"sim_FixProjectileMapEdgeCollision", kFafGameVersionUnreleased, &sim_FixProjectileMapEdgeCollision},
+      {"sim_FixAirAttackTerrainClearance", kFafGameVersionUnreleased, &sim_FixAirAttackTerrainClearance},
     }};
 
     int sSessionGameVersion = kFafGameVersionLatest;

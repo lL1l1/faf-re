@@ -31,6 +31,7 @@
 #include "moho/sim/CArmyImpl.h"
 #include "moho/sim/CSimArmyEconomyInfo.h"
 #include "moho/sim/COGrid.h"
+#include "moho/sim/FafGameVersion.h"
 #include "moho/sim/SPhysBody.h"
 #include "moho/sim/SimConVarAccess.h"
 #include "moho/sim/STIMap.h"
@@ -2955,6 +2956,17 @@ namespace moho
    * What it does:
    * Samples desired target elevation from target entity state and map
    * elevation, then returns relative Y-offset from the owner unit position.
+   *
+   * The binary samples the ground only at `offsetFromUnit`, which on an attack
+   * run is the target itself: a bomber aims for the target's ground height plus
+   * its attack elevation and ignores the terrain on the way, and since a flier
+   * has no terrain collision (see the end of CalcMoveAir) it flies through a
+   * hill between it and a target in a valley. With
+   * `EFafSimFix::AirAttackTerrainClearance` the answer is raised, when it has
+   * to be, to keep the flier `kAirTargetMinimumElevationScale` of its attack
+   * height above the terrain under it and along its heading for the next
+   * `kAirAttackTerrainLookAheadSeconds` of flight
+   * (ApplyAirAttackTerrainClearance).
    */
   float CUnitMotion::CalcDesiredTargetElevation(const CAiTarget& target, const Wm3::Vector3f& offsetFromUnit) const
   {
@@ -2996,7 +3008,7 @@ namespace moho
       if (targetElevation < minTargetElevation) {
         targetElevation = minTargetElevation;
       }
-      return targetElevation - ownerUnit->GetPosition().y;
+      return ApplyAirAttackTerrainClearance(targetElevation - ownerUnit->GetPosition().y, ownerPhysics.Elevation);
     }
 
     if (Entity* const targetEntity = target.GetEntity();
@@ -3006,7 +3018,55 @@ namespace moho
 
     const float desiredOwnerElevation =
       (static_cast<std::int32_t>(mCombatState) == 1) ? ownerPhysics.AttackElevation : ownerPhysics.Elevation;
-    return (sampledElevation + desiredOwnerElevation) - ownerUnit->GetPosition().y;
+    return ApplyAirAttackTerrainClearance(
+      (sampledElevation + desiredOwnerElevation) - ownerUnit->GetPosition().y, desiredOwnerElevation
+    );
+  }
+
+  /**
+   * Engine addition (`EFafSimFix::AirAttackTerrainClearance`, no binary
+   * counterpart): raises a desired climb from CalcDesiredTargetElevation so the
+   * flier stays at least half of `attackHeight` above the surface under it and
+   * ahead of it along its flat heading, sampled at 0, 0.5, 1 and 2 seconds of
+   * flight at its top air speed. The surface is the terrain, or the water
+   * surface for a flier that cannot fly in water, as CalcMoveAir samples it.
+   * Over level ground, or with the target on higher ground than the way to it,
+   * the binary's answer is already above that floor and passes through
+   * unchanged. Returns `desiredClimb` as is while the fix is off.
+   */
+  float CUnitMotion::ApplyAirAttackTerrainClearance(const float desiredClimb, const float attackHeight) const
+  {
+    if (!FAF_IsSimFixActive(EFafSimFix::AirAttackTerrainClearance)) {
+      return desiredClimb;
+    }
+
+    constexpr float kAirAttackTerrainLookAheadSeconds[] = {0.0f, 0.5f, 1.0f, 2.0f};
+
+    const Unit* const unit = mUnit;
+    const RUnitBlueprint* const blueprint = unit->GetBlueprint();
+    const STIMap* const mapData = unit->SimulationRef->mMapData;
+    const CHeightField* const heightField = mapData->GetHeightField();
+    const bool clampToWater = blueprint->Air.FlyInWater == 0u && mapData->mWaterEnabled != 0u;
+
+    const Wm3::Vector3f position = unit->GetPosition();
+    Wm3::Vector3f heading = QuatForwardAxis(unit->mVarDat.mCurTransform.orient_);
+    heading.y = 0.0f;
+    (void)NormalizeVectorInto(&heading, heading);
+    const float speed = unit->GetAttributes().moveSpeedMult * blueprint->Air.MaxAirspeed;
+
+    float floorSurface = -std::numeric_limits<float>::infinity();
+    for (const float seconds : kAirAttackTerrainLookAheadSeconds) {
+      const float x = position.x + heading.x * speed * seconds;
+      const float z = position.z + heading.z * speed * seconds;
+      float surface = heightField->GetElevation(x, z);
+      if (clampToWater && mapData->mWaterElevation > surface) {
+        surface = mapData->mWaterElevation;
+      }
+      floorSurface = std::max(floorSurface, surface);
+    }
+
+    const float minClimb = (floorSurface + (attackHeight * kAirTargetMinimumElevationScale)) - position.y;
+    return std::max(desiredClimb, minClimb);
   }
 
   /**

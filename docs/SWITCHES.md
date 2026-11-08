@@ -224,6 +224,7 @@ The switches below are read when a session begins. In a multiplayer game every c
 | `sim_FixRefuelUndockAboveMaxHealth` | −1 | `/con` | next game | #169 (from 3840): refuelled aircraft undock once health is at least max health |
 | `sim_FixShieldRepair` | −1 | `/con` | next game | #175 (from 3840): shield repair scales with the builder's resources, and a switched-off shield is not repaired |
 | `sim_FixProjectileMapEdgeCollision` | −1 | `/con` | next game | #180 (in no FAF release yet, so −1 means off): a surface-colliding projectile outside the map hits the terrain at the height of the nearest map edge, and #154's impact below height 0 is off. Projectiles with `CollideSurface = false`, such as the UEF build effect projectile, are no longer destroyed below 0 |
+| `sim_FixAirAttackTerrainClearance` | −1 | `/con` | next game | Engine fix, in no FA-Binary-Patches build or FAF release, so −1 means off: a bomber or other winged flier on an attack run stays at least half its attack elevation above the terrain under it and along its heading (0, 0.5, 1 and 2 seconds of flight ahead). The original game aims it at the target's ground height plus its attack elevation and ignores the terrain on the way, so it flies through a hill between it and a target in a valley |
 
 ## Protection against other players
 

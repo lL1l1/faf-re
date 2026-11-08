@@ -33,7 +33,8 @@ namespace moho
     RefuelUndockAboveMaxHealth = 3, ///< #169: aircraft undock when health >= max health (3840)
     ShieldRepair = 4,               ///< #175: shield repair scales with resources, and needs the shield on (3840)
     ProjectileMapEdgeCollision = 5, ///< #180: terrain extends past the map edge; replaces #154 (not released yet)
-    Count = 6,
+    AirAttackTerrainClearance = 6,  ///< engine fix: an attack run keeps clear of the terrain under and ahead of the flier (not released yet)
+    Count = 7,
   };
 
   /// `SFafSimFixInfo::mFirstGameVersion` of a fix no FAF release carries yet: on only by its switch.
